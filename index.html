@@ -87,6 +87,12 @@
          gap: 10px;
         margin: 20px 0;
         }
+    #restart-warning {
+      color: #ffbd59;
+      font-size: 14px;
+      min-height: 20px;
+      margin: 4px 0 12px;
+        }
     }
   </style>
 </head>
@@ -103,6 +109,7 @@
 
   <button id="submit">Submit Guess</button>
   <button id="restart">New Game</button>
+  <p id="restart-warning"></p>
 
   <p id="message">Choose four colors to begin.</p>
   <h3>Previous guesses</h3>
@@ -136,24 +143,37 @@
     const message = document.getElementById("message");
     const submitButton = document.getElementById("submit");
 
-    function startGame() {
-      // Shuffle the colors and select four unique ones.
-      secretCode = [...colors]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, codeLength);
+    
+function startGame() {
+  const restartWarning = document.getElementById("restart-warning");
 
-      currentGuess = [];
-      attempts = 0;
-      gameOver = false;
+  // Prevent starting a new game if the current round is unfinished.
+  if (secretCode.length > 0 && !gameOver) {
+    restartWarning.textContent =
+      "Complete this round before starting a new game.";
+    return;
+  }
 
-      history.innerHTML = "";
-      document.getElementById("secret-reveal").innerHTML = "";
-      message.textContent = "Choose four colors to begin.";
-      submitButton.disabled = false;
+  // Clear the warning when a new game can start.
+  restartWarning.textContent = "";
 
-      renderPalette();
-      renderGuess();
-    }
+  // Shuffle the colors and select four unique ones.
+  secretCode = [...colors]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, codeLength);
+
+  currentGuess = [];
+  attempts = 0;
+  gameOver = false;
+
+  history.innerHTML = "";
+  document.getElementById("secret-reveal").innerHTML = "";
+  message.textContent = "Choose four colors to begin.";
+  submitButton.disabled = false;
+
+  renderPalette();
+  renderGuess();
+}
 
     function renderPalette() {
       palette.innerHTML = "";
@@ -215,7 +235,7 @@
 
     function submitGuess() {
       if (gameOver) return;
-
+      document.getElementById("restart-warning").textContent = "";
       if (currentGuess.length !== codeLength) {
         message.textContent = "Choose four colors first!";
         return;
