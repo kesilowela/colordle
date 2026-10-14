@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Colordle</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #151a2e;
+      color: #f4f4f8;
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    h1 {
+      color: #A0F1d1;
+    }
+
+    #palette, #guess {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .peg {
+      width: 42px;
+      height: 42px;
+      border: 3px solid #ffffff55;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .peg.selected {
+      outline: 3px solid white;
+      outline-offset: 3px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #70e1d1;
+      color: #151a2e;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 6px;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .history-row .peg {
+      width: 24px;
+      height: 24px;
+      cursor: default;
+    }
+
+    .clue {
+      font-size: 14px;
+      color: #b9c3dd;
+      margin-left: 8px;
+    }
+
+    #message {
+      min-height: 24px;
+      margin: 18px;
+    }
+
+    #secret-reveal {
+        display: flex;
+        justify-content: center;
+         gap: 10px;
+        margin: 20px 0;
+        }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>COLORDLE</h1>
+  <p>Crack the four-color code in 6 attempts.</p>
+  <p>Each color can appear only once.</p>
+
+  <h3>Your guess</h3>
+  <div id="guess"></div>
+
+  <div id="palette"></div>
+
+  <button id="submit">Submit Guess</button>
+  <button id="restart">New Game</button>
+
+  <p id="message">Choose four colors to begin.</p>
+  <h3>Previous guesses</h3>
+  <div id="history"></div>
+
+  
+      <h3>Secret Code</h3>
+  <div id="secret-reveal"></div>
+
+  <script>
+    const colors = [
+      "#ff647c",
+      "#ffbd59",
+      "#70e1d1",
+      "#7b9cff",
+      "#c18aff",
+      "#f4f4f8"
+    ];
+
+    const codeLength = 4;
+    const maxAttempts = 6;
+
+    let secretCode = [];
+    let currentGuess = [];
+    let attempts = 0;
+    let gameOver = false;
+
+    const palette = document.getElementById("palette");
+    const guessBoard = document.getElementById("guess");
+    const history = document.getElementById("history");
+    const message = document.getElementById("message");
+    const submitButton = document.getElementById("submit");
+
+    function startGame() {
+      // Shuffle the colors and select four unique ones.
+      secretCode = [...colors]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, codeLength);
+
+      currentGuess = [];
+      attempts = 0;
+      gameOver = false;
+
+      history.innerHTML = "";
+      document.getElementById("secret-reveal").innerHTML = "";
+      message.textContent = "Choose four colors to begin.";
+      submitButton.disabled = false;
+
+      renderPalette();
+      renderGuess();
+    }
+
+    function renderPalette() {
+      palette.innerHTML = "";
+
+      colors.forEach(color => {
+        const peg = document.createElement("button");
+        peg.className = "peg";
+        peg.style.backgroundColor = color;
+        peg.setAttribute("aria-label", color);
+
+        peg.onclick = () => {
+          if (gameOver || currentGuess.length >= codeLength) return;
+          if (currentGuess.includes(color)) {
+          message.textContent = "No duplicate colors allowed.";    
+          return;
+          }
+
+          currentGuess.push(color);
+          renderGuess();
+        };
+
+        palette.appendChild(peg);
+      });
+    }
+
+    function renderGuess() {
+      guessBoard.innerHTML = "";
+
+      for (let i = 0; i < codeLength; i++) {
+        const peg = document.createElement("button");
+        peg.className = "peg";
+        peg.style.backgroundColor = currentGuess[i] || "#303750";
+        peg.setAttribute("aria-label", currentGuess[i] || "Empty slot");
+
+        peg.onclick = () => {
+          if (gameOver || !currentGuess[i]) return;
+          currentGuess.splice(i, 1);
+          renderGuess();
+        };
+
+        guessBoard.appendChild(peg);
+      }
+    }
+
+    function checkGuess() {
+      let exact = 0;
+      let correctColor = 0;
+
+      for (let i = 0; i < codeLength; i++) {
+        if (currentGuess[i] === secretCode[i]) {
+          exact++;
+        } else if (secretCode.includes(currentGuess[i])) {
+          correctColor++;
+        }
+      }
+
+      return { exact, correctColor };
+    }
+
+    function submitGuess() {
+      if (gameOver) return;
+
+      if (currentGuess.length !== codeLength) {
+        message.textContent = "Choose four colors first!";
+        return;
+      }
+
+      const result = checkGuess();
+      attempts++;
+
+      const row = document.createElement("div");
+      row.className = "history-row";
+
+      currentGuess.forEach(color => {
+        const peg = document.createElement("div");
+        peg.className = "peg";
+        peg.style.backgroundColor = color;
+        row.appendChild(peg);
+      });
+
+      const clue = document.createElement("span");
+      clue.className = "clue";
+      clue.textContent =
+        `Exact: ${result.exact} | Wrong spot: ${result.correctColor}`;
+
+      row.appendChild(clue);
+      history.prepend(row);
+
+      if (result.exact === codeLength) {
+        message.textContent = `You cracked the code in ${attempts} attempts!`;
+        gameOver = true;
+      } else if (attempts >= maxAttempts) {
+        message.textContent = "Out of attempts! Try a new game.";
+        gameOver = true;
+      } else {
+        message.textContent = `You have ${maxAttempts - attempts} attempts out of ${maxAttempts}.`;
+      }
+
+      if (gameOver) {
+        submitButton.disabled = true;
+        const reveal = document.getElementById("secret-reveal");
+        reveal.innerHTML = "";
+
+        secretCode.forEach(color => {
+        const peg = document.createElement("div");
+
+        peg.className = "peg";
+        peg.style.backgroundColor = color;
+
+        reveal.appendChild(peg);
+        });
+      }
+
+      currentGuess = [];
+      renderGuess();
+    }
+
+    submitButton.addEventListener("click", submitGuess);
+    document.getElementById("restart")
+      .addEventListener("click", startGame);
+
+    startGame();
+  </script>
+</body>
+</html>
